@@ -1,5 +1,5 @@
 
-from phenotype import PhenoType
+from src.phenotypes import PhenoType
 
 eating_disorder = PhenoType(name="EatingDisorder",
                          icd9_codes=["3071", "3075", "30750", "30751", "30752", "30753", "30754", "30755", "30759"],

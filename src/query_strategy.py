@@ -1,32 +1,34 @@
 from pyspark.sql.functions import when
 
-from src import PhenoType
-from src import pcol
+from src.phenotypes import PhenoType
+from src.utils import pcol, p
 from typing import List
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import array_intersect, lit, size
 
-from src import p
 import json
 import re
 from collections import defaultdict
 from functools import reduce
 
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import array_distinct, array_compact, array, col
+from pyspark.sql.functions import array_distinct, array_compact, array, col, concat
 
 ICD_10 = 41270
 ICD_9 = 41271
 SR_20002 = 20002
 EVER_DIAG = 20544
 
+DIAGNOSIS_FIELDS = [ICD_10, ICD_9, SR_20002, EVER_DIAG]
+
 
 def load_json(file_path):
     with open(file_path, "r") as f:
         return json.load(f)
 
+
 class PhenotypeQueryManager:
-    def __init__(self, spark:SparkSession):
+    def __init__(self, spark: SparkSession):
 
         db = "database_gv04zbqj4qvkbzgxvpxzf6j3__app162313_20241004200320"
         spark.sql(f"USE {db}")
@@ -35,11 +37,13 @@ class PhenotypeQueryManager:
 
         self.field_names_to_table_names: dict[str, str] = load_json("field_names_to_table_names.json")
         self.table_names_to_field_names: dict[str, list[str]] = load_json("table_names_to_field_names.json")
-        self.table_names_to_field_numbers :dict[str, set[int]]= self._get_table_names_to_field_numbers(self.table_names_to_field_names)
-        self.field_number_to_field_names:dict[int, set[str]]  =self._get_field_number_to_field_names()
+        self.table_names_to_field_names = {key: set(value) for key, value in self.table_names_to_field_names.items()}
+        self.table_names_to_field_numbers: dict[str, set[int]] = self._get_table_names_to_field_numbers(
+            self.table_names_to_field_names)
+        self.field_number_to_field_names: dict[int, set[str]] = self._get_field_number_to_field_names()
         self.field_number_to_table_names: dict[int, set[str]] = self._get_field_number_to_table_names()
 
-        self.df  = self.get_table(ICD_10, ICD_9, SR_20002, EVER_DIAG)
+        self.df = self.get_table(ICD_10, ICD_9, SR_20002, EVER_DIAG)
 
     def _get_field_number_to_table_names(self):
         field_number_to_table_names = defaultdict(set)
@@ -51,11 +55,11 @@ class PhenotypeQueryManager:
 
         return field_number_to_table_names
 
-    def get_table_names_set_that_contain_field_numbers(self,*field_numbers: int) -> set[str]:
+    def get_table_names_set_that_contain_field_numbers(self, *field_numbers: int) -> set[str]:
         tables = set.union(*[self.field_number_to_table_names[f] for f in field_numbers])
         return tables
 
-    def get_table(self,*field_numbers: int) -> DataFrame:
+    def get_table(self, *field_numbers: int) -> DataFrame:
         table_names = self.get_table_names_set_that_contain_field_numbers(*field_numbers)
         spark_tables = []
 
@@ -68,9 +72,10 @@ class PhenotypeQueryManager:
 
         return reduce(lambda df1, df2: df1.join(df2, on="eid", how="outer"), spark_tables) if spark_tables else None
 
-    def handle_array_fields(self,spark_table, table_specific_field_names):
+    def handle_array_fields(self, spark_table, table_specific_field_names):
         pattern = r"((^p[0-9]+)_i\d+)_a\d+$"
         array_fields = [field for field in table_specific_field_names if re.match(pattern, field)]
+
         final_field_names_to_keep = set(table_specific_field_names)
         field_instance_to_array = defaultdict(list)
         field_to_instance = defaultdict(list)
@@ -90,7 +95,7 @@ class PhenotypeQueryManager:
             spark_table = spark_table.withColumn(field_instance,
                                                  array_distinct(array_compact(array(*field_instance_array))))
         for field_name, field_instances in field_to_instance.items():
-            spark_table = spark_table.withColumn(field_name, array_distinct(array_compact(array(*field_instances))))
+            spark_table = spark_table.withColumn(field_name, array_distinct(concat(*field_instances)))
         return spark_table
 
     @staticmethod
@@ -108,7 +113,7 @@ class PhenotypeQueryManager:
                              array_intersect(col(array_column), array(*[lit(n) for n in codes]))) \
             .withColumn(f"{name}", size(col(f"{name}_codes")) > 0)
 
-    def get_table_specific_field_names(self,field_numbers, table):
+    def get_table_specific_field_names(self, field_numbers, table):
         relevant_field_numbers = self.table_names_to_field_numbers[table] & set(field_numbers)
         relevant_fields = [self.field_number_to_field_names[field_number] for field_number in relevant_field_numbers]
         relevant_fields = set([x for y in relevant_fields for x in y] + ["eid"])
@@ -131,39 +136,66 @@ class PhenotypeQueryManager:
             table_names_to_field_names.items()}
 
     def query_diagnoses(self, df: DataFrame, phenotype: "PhenoType") -> DataFrame:
+        diagnoses_names = []
         if phenotype.icd9_codes:
             df = self.intersect_arrays(df, p(ICD_9), phenotype.icd9_codes, "icd9_" + phenotype.name)
+            diagnoses_names.append("icd9_" + phenotype.name)
         if phenotype.icd10_codes:
+            diagnoses_names.append("icd10_" + phenotype.name)
             df = self.intersect_arrays(df, p(ICD_10), phenotype.icd10_codes, "icd10_" + phenotype.name)
         if phenotype.sr_codes:
-            df = self.intersect_arrays(df, p(SR_20002), phenotype.sr_codes, "sr_20002_" + phenotype.name)
+            diagnoses_names.append("sr_20002_" + phenotype.name)
+            int_codes = [int(x) for x in phenotype.sr_codes]
+            df = self.intersect_arrays(df, p(SR_20002), int_codes, "sr_20002_" + phenotype.name)
             for i in range(4):
-                df = self.intersect_arrays(df, p(SR_20002, instance_number=i), phenotype.sr_codes,
+                df = self.intersect_arrays(df, p(SR_20002, instance_number=i), int_codes,
                                            f"sr_20002_{i}_" + phenotype.name)
         if phenotype.ever_diag_codes:
-            df = self.intersect_arrays(df, p(EVER_DIAG), phenotype.ever_diag_codes, "ever_diag_" + phenotype.name)
+            diagnoses_names.append("ever_diag_" + phenotype.name)
+            int_codes = [int(x) for x in phenotype.ever_diag_codes]
+            df = self.intersect_arrays(df, p(EVER_DIAG), int_codes, "ever_diag_" + phenotype.name)
 
-        diagnosis_names = ["icd9_" + phenotype.name, "icd10_" + phenotype.name, "sr_20002_" + phenotype.name , "ever_diag_" + phenotype.name]
-        any_diagnosis = reduce(lambda x, y: x | y, [col(name) for name in diagnosis_names])
+        if not diagnoses_names:
+            return df
+
+        any_diagnosis = reduce(lambda x, y: x | y, [col(name) for name in diagnoses_names])
         df = df.withColumn(phenotype.name, any_diagnosis)
 
         return df
 
     def query(self, df: DataFrame, phenotype: "PhenoType") -> DataFrame:
-        new_df = self.get_table(*phenotype.associated_field_numbers)
-        df = df.join(new_df, on="eid", how="outer")
-        df = phenotype.query(df)
-        df  = self.query_diagnoses(df, phenotype)
+        if phenotype.associated_field_numbers:
+            new_df = self.get_table(*phenotype.associated_field_numbers)
+            df = df.join(new_df, on="eid", how="outer")
+
+        if phenotype.query:
+            df = phenotype.query(df)
+        df = self.query_diagnoses(df, phenotype)
         return df
 
-    def query_all(self,*phenotypes:"PhenoType")->DataFrame:
-        df = self.df
+    def query_all(self, *phenotypes: "PhenoType") -> DataFrame:
+
+        df = self.get_relevant_data_frame(*phenotypes)
+
         for phenotype in phenotypes:
-            df = self.query(df,phenotype)
+            if phenotype.query:
+                df = phenotype.query(df)
+                
+            df = self.query_diagnoses(df, phenotype)
+            
         return df
 
-
-
+    def get_relevant_data_frame(self, *phenotypes: "PhenoType") -> DataFrame:
+        df = self.df
+        # remove duplicate fieldnumbers since this causes issues with spark
+        unique_field_numbers = set()
+        for phenotype in phenotypes:
+            unique_field_numbers |= set(phenotype.associated_field_numbers)
+        unique_field_numbers -= set(DIAGNOSIS_FIELDS)
+        if unique_field_numbers:
+            new_df = self.get_table(*unique_field_numbers)
+            df = df.join(new_df, on="eid", how="outer")
+        return df
 
 
 class ScoreBasedQueryStrategy:
@@ -171,7 +203,6 @@ class ScoreBasedQueryStrategy:
 
     def __init__(self, field_numbers: List[int], score_column: str, risk_column: str,
                  score_levels: List[int], score_level_names: List[str]):
-
         """
         :param field_numbers: List of field numbers used for scoring.
         :param score_column: Name of the score column.
@@ -213,13 +244,3 @@ class ScoreBasedQueryStrategy:
 
         return df
 
-
-def compose_query_strategies(*strategies: PhenotypeQueryManager)->PhenotypeQueryManager:
-    """ Compose multiple query strategies into a single strategy. """
-    class CompositeQueryStrategy(PhenotypeQueryManager):
-        def query(self, df: DataFrame, phenotype: "PhenoType") -> DataFrame:
-            for strategy in strategies:
-                df = strategy.query(df, phenotype)
-            return df
-
-    return CompositeQueryStrategy()

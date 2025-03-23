@@ -1,5 +1,5 @@
 
-from phenotype import PhenoType
+from src.phenotypes import PhenoType
 
 
 

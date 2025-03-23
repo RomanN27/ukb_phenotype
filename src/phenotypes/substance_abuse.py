@@ -1,9 +1,9 @@
 from pyspark.sql.functions import when
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import col
+from pyspark.sql.functions import col, size, array_intersect, array, lit
 # Initialize Spark session
-from src import PhenoType
-from src import pcol
+from src.phenotypes import PhenoType
+from src.utils import pcol
 
 def substance_abuse_non_alcoholic_query(df: DataFrame) -> DataFrame:
     # Define cannabis use groups
@@ -19,7 +19,7 @@ def substance_abuse_non_alcoholic_query(df: DataFrame) -> DataFrame:
     df = df.withColumn("cannabis_use_group", cannabis_use_group)
 
     # Define substance addiction criteria
-    illness_dependency = pcol(20002).isin(785, 48, 53)
+    illness_dependency = size(array_intersect(pcol(20002),  array(*[lit(n) for n in [785, 48, 53]])) ) > 0
     illicit_drug_addiction = pcol(20456) == 1
     medication_addiction = pcol(20503) == 1
 
@@ -64,7 +64,7 @@ def substance_abuse_alcoholic_query(df: DataFrame) -> DataFrame:
     }
 
     alcohol_addiction = pcol(20406) == 1
-    df = df.withColumn("AUDIT_score", sum(*adjusted_scores.values()))
+    df = df.withColumn("AUDIT_score", sum(adjusted_scores.values()))
     df = df.withColumn("AlcoholAbuse", alcohol_addiction | (col("AUDIT_score") >= 15))
     return df
 

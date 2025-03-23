@@ -1,53 +1,68 @@
-from phenotype import PhenoType
-from src import ScoreBasedQueryStrategy
-from src import pcol
+from src.phenotypes import PhenoType
+from src.query_strategy import ScoreBasedQueryStrategy
+from src.utils import pcol
 from pyspark.sql import DataFrame
 
+from pyspark.sql.functions import col
+from functools import reduce
 
 def probable_depression_query(df: DataFrame) -> DataFrame:
-    down_for_whole_week = pcol(4598) == 1
-    at_least_two_weeks = pcol(4609) == 1
-    n_depressed_episodes = pcol(4620)
-    ever_anhedonic_for_a_week = pcol(4631) == 1
-    seen_a_gp = pcol(2090) == 1
-    seen_a_psychiatrist = pcol(2100) == 1
-    weeks_uninterested = pcol(5375)
-    n_uninterested_episodes = pcol(5386)
+    n_instances = 4
+    for i in range(n_instances):
+        down_for_whole_week = pcol(4598,i) == 1
+        at_least_two_weeks = pcol(4609,i) == 1
+        n_depressed_episodes = pcol(4620,i)
+        ever_anhedonic_for_a_week = pcol(4631,i) == 1
+        seen_a_gp = pcol(2090,i) == 1
+        seen_a_psychiatrist = pcol(2100,i) == 1
+        weeks_uninterested = pcol(5375,i)
+        n_uninterested_episodes = pcol(5386,i)
 
-    first_criteria = down_for_whole_week & at_least_two_weeks & (n_depressed_episodes == 1) & (
-            seen_a_gp | seen_a_psychiatrist)
+        first_criteria = down_for_whole_week & at_least_two_weeks & (n_depressed_episodes == 1) & (
+                seen_a_gp | seen_a_psychiatrist)
 
-    second_criteria = ever_anhedonic_for_a_week & (n_uninterested_episodes == 1) & (weeks_uninterested >= 2)
+        second_criteria = ever_anhedonic_for_a_week & (n_uninterested_episodes == 1) & (weeks_uninterested >= 2)
 
-    df = df.withColumn(
-        "single_probable_episode_of_major_depression",
-        (
-                first_criteria | second_criteria
+        df = df.withColumn(
+            f"single_probable_episode_of_major_depression_{i}",
+            (
+                    first_criteria | second_criteria
+            )
         )
-    )
 
-    seen_gp_but_not_psychiatrist = (seen_a_gp & (not seen_a_psychiatrist))
+        seen_gp_but_not_psychiatrist = (seen_a_gp & (~ seen_a_psychiatrist))
 
-    being_depressed_long = down_for_whole_week & at_least_two_weeks & (n_depressed_episodes >= 2)
-    being_uninterested_long = ever_anhedonic_for_a_week & (n_uninterested_episodes >= 2) & (weeks_uninterested > 2)
+        being_depressed_long = down_for_whole_week & at_least_two_weeks & (n_depressed_episodes >= 2)
+        being_uninterested_long = ever_anhedonic_for_a_week & (n_uninterested_episodes >= 2) & (weeks_uninterested > 2)
 
-    being_down_long = being_depressed_long | being_uninterested_long
+        being_down_long = being_depressed_long | being_uninterested_long
 
-    df = df.withColumn(
-        "probable_recurrent_major_depression_moderate",
-        (
-                being_down_long & seen_gp_but_not_psychiatrist
+        df = df.withColumn(
+            f"probable_recurrent_major_depression_moderate_{i}",
+            (
+                    being_down_long & seen_gp_but_not_psychiatrist
+            )
         )
-    )
 
-    df = df.withColumn(
-        "probable_recurrent_major_depression_severe",
-        (
-                being_down_long & seen_a_psychiatrist
+        df = df.withColumn(
+            f"probable_recurrent_major_depression_severe_{i}",
+            (
+                    being_down_long & seen_a_psychiatrist
+            )
         )
-    )
+
+    single_probable_episode_of_major_depression = [col(f"single_probable_episode_of_major_depression_{i}") for i in range(n_instances)]
+    probable_recurrent_major_depression_moderate = [col(f"probable_recurrent_major_depression_moderate_{i}") for i in range(n_instances)]
+    probable_recurrent_major_depression_severe = [col(f"probable_recurrent_major_depression_severe_{i}") for i in range(n_instances)]
+
+    df = df.withColumn("single_probable_episode_of_major_depression", reduce(lambda x, y: x | y, single_probable_episode_of_major_depression))
+    df = df.withColumn("probable_recurrent_major_depression_moderate", reduce(lambda x, y: x | y, probable_recurrent_major_depression_moderate))
+    df = df.withColumn("probable_recurrent_major_depression_severe", reduce(lambda x, y: x | y, probable_recurrent_major_depression_severe))
+
+    df = df.withColumn("ProbableDepression", col("single_probable_episode_of_major_depression") | col("probable_recurrent_major_depression_moderate") | col("probable_recurrent_major_depression_severe"))
 
     return df
+
 
 probable_depression = PhenoType(
     name="ProbableDepression",
@@ -101,5 +116,5 @@ diagnosed_depression = PhenoType(name="DiagnosedDepression", icd9_codes=["3119",
                          ever_diag_codes=["11"])
 
 
-
-general_depression = PhenoType.merge_phenotypes("GeneralDepression",probable_depression,phq_9_depression,life_time_depression,diagnosed_depression)
+depression_name  ="GeneralDepression"
+general_depression = PhenoType.merge_phenotypes(depression_name,probable_depression,phq_9_depression,life_time_depression,diagnosed_depression)

@@ -1,6 +1,6 @@
 
-from phenotype import PhenoType
-from src import ScoreBasedQueryStrategy
+from src.phenotypes import PhenoType
+from src.query_strategy import ScoreBasedQueryStrategy
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 

@@ -9,8 +9,8 @@ def main():
     spark = pyspark.sql.SparkSession(sc)
 
     query_manager = PhenotypeQueryManager(spark)
-
-    df  =query_manager.query_all(self_harm, eating_disorder, bipolar, general_depression,anxiety,
+    #make sure that depression is processed before bipolar
+    df  =query_manager.query_all(self_harm, eating_disorder, general_depression,bipolar,anxiety,
                                  alcohol_abuse, substance_abuse_non_alcoholic, schizophrenia, ptsd, ocd)
 
 

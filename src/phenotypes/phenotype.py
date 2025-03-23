@@ -10,7 +10,6 @@ from typing import List
 from functools import reduce
 
 
-
 @dataclass
 class PhenoType:
     name: str
@@ -30,8 +29,14 @@ class PhenoType:
         associated_field_numbers= sum([p.associated_field_numbers for p in phenotypes],[])
 
         def query(df:DataFrame)->DataFrame:
-            df =  reduce(lambda df, p: p.query(df), phenotypes, df)
-            phenotype_names = [p.name for p in phenotypes]
+            print(associated_field_numbers)
+            df =  reduce(lambda df, p: p.query(df) if p.query else df, phenotypes, df)
+            phenotype_names = [p.name for p in phenotypes if p.name in df.columns]
+
+            if name in df.columns:
+                phenotype_names.append(name)
+                df = df.withColumn("Diagnosed" + name, col(name))
+
             any_phenotype = reduce(lambda x, y: x | y, [col(pname) for pname in phenotype_names])
             df = df.withColumn(name, any_phenotype)
             return df

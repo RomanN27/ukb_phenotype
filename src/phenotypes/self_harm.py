@@ -1,11 +1,12 @@
 from pyspark.sql import DataFrame
 # Initialize Spark session
-from src import PhenoType
-from src import pcol
-
+from src.phenotypes import PhenoType
+from src.utils import pcol
+from pyspark.sql.functions import *
 def self_harm_query(df: DataFrame) -> DataFrame:
+    
     # Define conditions for self-harm and suicide risk
-    self_harm_1 = (pcol(20480) == 1) | (pcol(20479) == 1) | (pcol(20554).between(1, 6))
+    self_harm_1 = (pcol(20480) == 1) | (pcol(20479) == 1) | (size(array_intersect(pcol(20554), array(*[lit(n) for n in [1,3,4,5,6]])))>0)
 
     suicide_attempt = (pcol(20483) == 1)
 
@@ -28,7 +29,7 @@ self_harm = PhenoType(name="SelfHarm",
 
                              # Y1-Y3 range (Assumed to include Y1, Y2, Y3)
                              "Y1", "Y2", "Y3"
-                         ], sr_codes=["1290"], associated_field_numbers=[20480, 20479, 2055],
+                         ], sr_codes=["1290"], associated_field_numbers=[20480,20483, 20479, 20554],
                       query=self_harm_query)
 
 

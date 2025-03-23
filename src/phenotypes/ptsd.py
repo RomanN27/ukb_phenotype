@@ -1,7 +1,7 @@
 from pyspark.sql import DataFrame
 # Initialize Spark session
-from src import PhenoType
-from src import pcol
+from src.phenotypes import PhenoType
+from src.utils import pcol
 
 def ptsd_query(df: DataFrame) -> DataFrame:
     # Calculate PCL-6 score (adjusting values by subtracting 1 for 0-4 scale)
