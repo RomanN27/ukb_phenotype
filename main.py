@@ -1,16 +1,20 @@
-from inspect import isclass
-from phenotypes import (SelfHarm,EatingDisorder,GeneralBipolar,GeneralDepression,
-                        GeneralAnxiety,AlocoholAbuse,SubstanceAbuseNonAlcoholic,Schizophrenia,PTSD,OCD,mother_df)
+import pyspark
+from src.phenotypes import (self_harm, eating_disorder, bipolar, general_depression,
+                 anxiety, alcohol_abuse, substance_abuse_non_alcoholic, schizophrenia, ptsd, ocd)
+
+from src.query_strategy import PhenotypeQueryManager
+
 def main():
-    phenotypes = [SelfHarm, EatingDisorder, GeneralBipolar, GeneralDepression,
-                  GeneralAnxiety, AlocoholAbuse, SubstanceAbuseNonAlcoholic, Schizophrenia, PTSD, OCD]
+    sc = pyspark.SparkContext()
+    spark = pyspark.sql.SparkSession(sc)
 
-    for phenotype in phenotypes:
-        if isclass(phenotype):
-            phenotype = phenotype()
-        phenotype.add_to_mother_df(mother_df)
+    query_manager = PhenotypeQueryManager(spark)
 
-    df = mother_df.toPandas()
+    df  =query_manager.query_all(self_harm, eating_disorder, bipolar, general_depression,anxiety,
+                                 alcohol_abuse, substance_abuse_non_alcoholic, schizophrenia, ptsd, ocd)
+
+
+    df = df.toPandas()
     df.to_csv("data.csv")
 
 
