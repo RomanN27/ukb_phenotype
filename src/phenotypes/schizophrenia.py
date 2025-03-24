@@ -1,8 +1,8 @@
-from src.phenotypes import PhenoType
+from src.phenotypes import DerivedPhenotype
 
-schizophrenia = PhenoType(name="Schizophrenia",
-                         icd9_codes=["2950", "2951", "2952", "2953", "295F4", "2955", "2956", "2957", "2958", "2959"],
-                         icd10_codes=[
+schizophrenia = DerivedPhenotype(name="Schizophrenia",
+                                 icd9_codes=["2950", "2951", "2952", "2953", "295F4", "2955", "2956", "2957", "2958", "2959"],
+                                 icd10_codes=[
                              # Schizophrenia
                              "F20.0", "F20.1", "F20.2", "F20.3", "F20.4", "F20.5", "F20.6", "F20.8", "F20.9",
 

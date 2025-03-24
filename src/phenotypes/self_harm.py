@@ -1,5 +1,5 @@
 from pyspark.sql import DataFrame
-from src.phenotypes import PhenoType
+from src.phenotypes import DerivedPhenotype
 from src.utils import pcol, contains_any
 
 
@@ -16,9 +16,9 @@ def self_harm_query(df: DataFrame) -> DataFrame:
     return df
 
 
-self_harm = PhenoType(name="SelfHarm",
-                         icd9_codes=["E950", "E951", "E952", "E953", "E954", "E955", "E956", "E957", "E958", "E959"],
-                         icd10_codes=[
+self_harm = DerivedPhenotype(name="SelfHarm",
+                             icd9_codes=["E950", "E951", "E952", "E953", "E954", "E955", "E956", "E957", "E958", "E959"],
+                             icd10_codes=[
                              # Intentional self-harm
                              "X60", "X61", "X62", "X63", "X64", "X65", "X66", "X67", "X68", "X69",
                              "X70", "X71", "X72", "X73", "X74", "X75", "X76", "X77", "X78", "X79",
@@ -30,7 +30,7 @@ self_harm = PhenoType(name="SelfHarm",
                              # Y1-Y3 range (Assumed to include Y1, Y2, Y3)
                              "Y1", "Y2", "Y3"
                          ], sr_codes=["1290"], associated_field_numbers=[20480,20483, 20479, 20554],
-                      query=self_harm_query)
+                             query=self_harm_query)
 
 
 

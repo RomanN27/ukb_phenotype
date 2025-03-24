@@ -2,7 +2,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 from pyspark.sql.functions import when, array
 
-from src.phenotypes import PhenoType
+from src.phenotypes import DerivedPhenotype
 from src.utils import pcol, contains_any
 
 
@@ -31,8 +31,8 @@ def substance_abuse_non_alcoholic_query(df: DataFrame) -> DataFrame:
 
     return df
 
-substance_abuse_non_alcoholic = PhenoType(name="SubstanceAbuseNonAlcoholic",  icd9_codes=["3040"],
-                         icd10_codes=[
+substance_abuse_non_alcoholic = DerivedPhenotype(name="SubstanceAbuseNonAlcoholic", icd9_codes=["3040"],
+                                                 icd10_codes=[
                              # Mental and behavioural disorders due to use of opioids
                              "F11.1", "F11.2", "F11.3", "F11.4",
 
@@ -47,7 +47,7 @@ substance_abuse_non_alcoholic = PhenoType(name="SubstanceAbuseNonAlcoholic",  ic
 
                              # Mental and behavioural disorders due to multiple drug use and other psychoactive substances
                              "F19.1", "F19.2", "F19.3", "F19.4"
-                         ], sr_codes=["1409", "1410"], associated_field_numbers=[20453, 20454, 20002, 20456, 20503],query=substance_abuse_non_alcoholic_query)
+                         ], sr_codes=["1409", "1410"], associated_field_numbers=[20453, 20454, 20002, 20456, 20503], query=substance_abuse_non_alcoholic_query)
 
 
 def substance_abuse_alcoholic_query(df: DataFrame) -> DataFrame:
@@ -70,8 +70,8 @@ def substance_abuse_alcoholic_query(df: DataFrame) -> DataFrame:
     df = df.withColumn("AlcoholAbuse", alcohol_addiction | (col("AUDIT_score") >= 15))
     return df
 
-alcohol_abuse = PhenoType(name="AlcoholAbuse", icd9_codes=["3039"],
-                         icd10_codes=["F10.1", "F10.2", "F10.3", "F10.4"], sr_codes=["1408"],
-                         associated_field_numbers=[20414, 20403, 20416, 20413, 20407, 20412, 20409, 20408, 20411, 20405,
+alcohol_abuse = DerivedPhenotype(name="AlcoholAbuse", icd9_codes=["3039"],
+                                 icd10_codes=["F10.1", "F10.2", "F10.3", "F10.4"], sr_codes=["1408"],
+                                 associated_field_numbers=[20414, 20403, 20416, 20413, 20407, 20412, 20409, 20408, 20411, 20405,
                                                    20406], query=substance_abuse_alcoholic_query)
 

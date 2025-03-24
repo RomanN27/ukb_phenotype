@@ -1,6 +1,6 @@
 from pyspark.sql.functions import when
 
-from src.phenotypes import PhenoType
+from src.phenotypes import DerivedPhenotype
 from src.utils import pcol, p
 from typing import List
 from pyspark.sql import SparkSession
@@ -138,7 +138,7 @@ class PhenotypeQueryManager:
             key: {int(f.split("_")[0][1:]) for f in value if f != "eid" and "hierarchy" not in f} for key, value in
             table_names_to_field_names.items()}
 
-    def query_diagnoses(self, df: DataFrame, phenotype: "PhenoType") -> DataFrame:
+    def query_diagnoses(self, df: DataFrame, phenotype: "DerivedPhenotype") -> DataFrame:
         diagnoses_names = []
 
         def add_diagnosis(df, codes, field, name,add_diagnosis=True ,cast_to_int=False):
@@ -167,7 +167,7 @@ class PhenotypeQueryManager:
 
         return df
 
-    def query(self, df: DataFrame, phenotype: "PhenoType") -> DataFrame:
+    def query(self, df: DataFrame, phenotype: "DerivedPhenotype") -> DataFrame:
         if phenotype.associated_field_numbers:
             new_df = self.get_table(*phenotype.associated_field_numbers)
             df = df.join(new_df, on="eid", how="outer")
@@ -177,7 +177,7 @@ class PhenotypeQueryManager:
         df = self.query_diagnoses(df, phenotype)
         return df
 
-    def query_all(self, *phenotypes: "PhenoType") -> DataFrame:
+    def query_all(self, *phenotypes: "DerivedPhenotype") -> DataFrame:
 
         df = self.get_relevant_data_frame(*phenotypes)
 
@@ -189,7 +189,7 @@ class PhenotypeQueryManager:
             
         return df
 
-    def get_relevant_data_frame(self, *phenotypes: "PhenoType") -> DataFrame:
+    def get_relevant_data_frame(self, *phenotypes: "DerivedPhenotype") -> DataFrame:
         df = self.df
         # remove duplicate fieldnumbers since this causes issues with spark
         unique_field_numbers = set()

@@ -1,6 +1,6 @@
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import size, when, col
-from src.phenotypes import PhenoType, depression_name
+from src.phenotypes import DerivedPhenotype, depression_name
 from src.utils import pcol
 from functools import reduce
 
@@ -32,9 +32,9 @@ def probable_bipolar_query(df: DataFrame) -> DataFrame:
     df = df.withColumn("ProbableBipolar", col("probable_bipolar_I") | col("probable_bipolar_II"))
     return df
 
-probable_bipolar = PhenoType(name="ProbableBipolar",
-                         associated_field_numbers=[4642, 4653, 6156, 5663, 5674],
-                             query=probable_bipolar_query)
+probable_bipolar = DerivedPhenotype(name="ProbableBipolar",
+                                    associated_field_numbers=[4642, 4653, 6156, 5663, 5674],
+                                    query=probable_bipolar_query)
 
 def life_time_bipolar_query(df: DataFrame) -> DataFrame:
     bipolar_affective_disorder_ii = when(
@@ -57,15 +57,15 @@ def life_time_bipolar_query(df: DataFrame) -> DataFrame:
     df = df.withColumn("LifetimeBipolar", col("bipolar_affective_disorder_I") | col("bipolar_affective_disorder_II"))
     return df
 
-life_time_bipolar = PhenoType(name="LifetimeBipolar",
-                         associated_field_numbers=[20501, 20502, 20548, 20492, 20493],
-                              query=life_time_bipolar_query)
+life_time_bipolar = DerivedPhenotype(name="LifetimeBipolar",
+                                     associated_field_numbers=[20501, 20502, 20548, 20492, 20493],
+                                     query=life_time_bipolar_query)
 
 
-diagnosed_bipolar = PhenoType(name="Bipolar",  icd9_codes=["2960", "2961", "2966"], icd10_codes=[
+diagnosed_bipolar = DerivedPhenotype(name="Bipolar", icd9_codes=["2960", "2961", "2966"], icd10_codes=[
             "F30.0", "F30.1", "F30.2", "F30.8", "F30.9",  # Manic Episode
             "F31.0", "F31.1", "F31.2", "F31.3", "F31.4", "F31.5", "F31.6", "F31.7", "F31.8", "F31.9"],
-                         sr_codes=["1291"], ever_diag_codes=["10"])
+                                     sr_codes=["1291"], ever_diag_codes=["10"])
 
-bipolar  = PhenoType.merge_phenotypes("Bipolar", probable_bipolar, life_time_bipolar, diagnosed_bipolar)
+bipolar  = DerivedPhenotype.merge_phenotypes("Bipolar", probable_bipolar, life_time_bipolar, diagnosed_bipolar)
 

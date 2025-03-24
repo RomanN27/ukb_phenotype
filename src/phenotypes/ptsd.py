@@ -1,5 +1,5 @@
 from pyspark.sql import DataFrame
-from src.phenotypes import PhenoType
+from src.phenotypes import DerivedPhenotype
 from src.utils import pcol
 
 def ptsd_query(df: DataFrame) -> DataFrame:
@@ -19,6 +19,6 @@ def ptsd_query(df: DataFrame) -> DataFrame:
     return df
 
 
-ptsd = PhenoType(name="PTSD", icd10_codes=["F431"], sr_codes=["1469"],
-                         associated_field_numbers=[20497, 20498, 20495, 20496, 20494, 20508],query=ptsd_query)
+ptsd = DerivedPhenotype(name="PTSD", icd10_codes=["F431"], sr_codes=["1469"],
+                        associated_field_numbers=[20497, 20498, 20495, 20496, 20494, 20508], query=ptsd_query)
 

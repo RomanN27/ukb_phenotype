@@ -1,5 +1,5 @@
 
-from src.phenotypes import PhenoType
+from src.phenotypes import DerivedPhenotype
 from src.query_strategy import ScoreBasedQueryStrategy
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
@@ -24,16 +24,16 @@ def gad7_query(df: DataFrame) -> DataFrame:
     df = df.withColumn(gad7_anxiety_name, col("GAD7_score") >= 10)
     return df
 
-gad7_anxiety = PhenoType(name=gad7_anxiety_name,
-                         associated_field_numbers=GAD_7_fields,
-                         query=gad7_query)
+gad7_anxiety = DerivedPhenotype(name=gad7_anxiety_name,
+                                associated_field_numbers=GAD_7_fields,
+                                query=gad7_query)
 
 
-diagnosed_anxiety = PhenoType(name="Diagnosed_Anxiety", icd9_codes=["3000", "3001", "3002", "3009", "300"],
-                         icd10_codes=["F064", "F93.0", "F931", "F932", "F40", "F400", "F401", "F402", "F408", "F409",
+diagnosed_anxiety = DerivedPhenotype(name="Diagnosed_Anxiety", icd9_codes=["3000", "3001", "3002", "3009", "300"],
+                                     icd10_codes=["F064", "F93.0", "F931", "F932", "F40", "F400", "F401", "F402", "F408", "F409",
                                       "F41", "F410", "F411",
                                       "F412", "F413", "F418", "F419"], sr_codes=["1287", "1614"],
-                         ever_diag_codes=["1", "6", "17"])
+                                     ever_diag_codes=["1", "6", "17"])
 
 
-anxiety  = PhenoType.merge_phenotypes("Anxiety",gad7_anxiety,diagnosed_anxiety)
+anxiety  = DerivedPhenotype.merge_phenotypes("Anxiety", gad7_anxiety, diagnosed_anxiety)

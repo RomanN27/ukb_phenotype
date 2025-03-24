@@ -1,4 +1,4 @@
-from src.phenotypes.phenotype import PhenoType
+from src.phenotypes.derived_phenotype import DerivedPhenotype
 from src.phenotypes.eating_disorder import eating_disorder
 from src.phenotypes.schizophrenia import schizophrenia
 from src.phenotypes.ocd import ocd
