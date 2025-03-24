@@ -1,4 +1,3 @@
-
 from src.phenotypes import PhenoType
 
 eating_disorder = PhenoType(name="EatingDisorder",

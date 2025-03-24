@@ -1,9 +1,7 @@
-
-
 from typing import Optional, Callable
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
-
+from typing import ClassVar
 
 from dataclasses import dataclass, field
 from typing import List
@@ -20,6 +18,9 @@ class PhenoType:
     associated_field_numbers: List[int] = field(default_factory=list)
     query: Optional[Callable[[DataFrame], DataFrame]] = None
 
+
+
+
     @staticmethod
     def merge_phenotypes(name:str, *phenotypes:"PhenoType")->"PhenoType":
         icd9_codes= sum([p.icd9_codes for p in phenotypes],[])
@@ -29,7 +30,7 @@ class PhenoType:
         associated_field_numbers= sum([p.associated_field_numbers for p in phenotypes],[])
 
         def query(df:DataFrame)->DataFrame:
-            print(associated_field_numbers)
+
             df =  reduce(lambda df, p: p.query(df) if p.query else df, phenotypes, df)
             phenotype_names = [p.name for p in phenotypes if p.name in df.columns]
 

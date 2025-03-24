@@ -1,12 +1,12 @@
 from pyspark.sql import DataFrame
-# Initialize Spark session
 from src.phenotypes import PhenoType
-from src.utils import pcol
-from pyspark.sql.functions import *
+from src.utils import pcol, contains_any
+
+
 def self_harm_query(df: DataFrame) -> DataFrame:
     
     # Define conditions for self-harm and suicide risk
-    self_harm_1 = (pcol(20480) == 1) | (pcol(20479) == 1) | (size(array_intersect(pcol(20554), array(*[lit(n) for n in [1,3,4,5,6]])))>0)
+    self_harm_1 = (pcol(20480) == 1) | (pcol(20479) == 1) | contains_any(pcol(20554), [1,3,4,5,6])
 
     suicide_attempt = (pcol(20483) == 1)
 

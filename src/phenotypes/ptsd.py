@@ -1,5 +1,4 @@
 from pyspark.sql import DataFrame
-# Initialize Spark session
 from src.phenotypes import PhenoType
 from src.utils import pcol
 

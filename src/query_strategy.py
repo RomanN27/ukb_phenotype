@@ -35,15 +35,18 @@ class PhenotypeQueryManager:
 
         self.spark = spark
 
+        self._initialize_mappings()
+
+        self.df = self.get_table(ICD_10, ICD_9, SR_20002, EVER_DIAG)
+
+    def _initialize_mappings(self):
         self.field_names_to_table_names: dict[str, str] = load_json("field_names_to_table_names.json")
-        self.table_names_to_field_names: dict[str, list[str]] = load_json("table_names_to_field_names.json")
+        self.table_names_to_field_names: dict[str, set[str]] = load_json("table_names_to_field_names.json")
         self.table_names_to_field_names = {key: set(value) for key, value in self.table_names_to_field_names.items()}
         self.table_names_to_field_numbers: dict[str, set[int]] = self._get_table_names_to_field_numbers(
             self.table_names_to_field_names)
         self.field_number_to_field_names: dict[int, set[str]] = self._get_field_number_to_field_names()
         self.field_number_to_table_names: dict[int, set[str]] = self._get_field_number_to_table_names()
-
-        self.df = self.get_table(ICD_10, ICD_9, SR_20002, EVER_DIAG)
 
     def _get_field_number_to_table_names(self):
         field_number_to_table_names = defaultdict(set)
@@ -137,23 +140,24 @@ class PhenotypeQueryManager:
 
     def query_diagnoses(self, df: DataFrame, phenotype: "PhenoType") -> DataFrame:
         diagnoses_names = []
-        if phenotype.icd9_codes:
-            df = self.intersect_arrays(df, p(ICD_9), phenotype.icd9_codes, "icd9_" + phenotype.name)
-            diagnoses_names.append("icd9_" + phenotype.name)
-        if phenotype.icd10_codes:
-            diagnoses_names.append("icd10_" + phenotype.name)
-            df = self.intersect_arrays(df, p(ICD_10), phenotype.icd10_codes, "icd10_" + phenotype.name)
-        if phenotype.sr_codes:
-            diagnoses_names.append("sr_20002_" + phenotype.name)
-            int_codes = [int(x) for x in phenotype.sr_codes]
-            df = self.intersect_arrays(df, p(SR_20002), int_codes, "sr_20002_" + phenotype.name)
-            for i in range(4):
-                df = self.intersect_arrays(df, p(SR_20002, instance_number=i), int_codes,
-                                           f"sr_20002_{i}_" + phenotype.name)
-        if phenotype.ever_diag_codes:
-            diagnoses_names.append("ever_diag_" + phenotype.name)
-            int_codes = [int(x) for x in phenotype.ever_diag_codes]
-            df = self.intersect_arrays(df, p(EVER_DIAG), int_codes, "ever_diag_" + phenotype.name)
+
+        def add_diagnosis(df, codes, field, name,add_diagnosis=True ,cast_to_int=False):
+            if codes:
+                if cast_to_int:
+                    codes = [int(x) for x in codes]
+                df = self.intersect_arrays(df, field, codes, name)
+                if add_diagnosis:
+                    diagnoses_names.append(name)
+            return df
+
+        df = add_diagnosis(df, phenotype.icd9_codes, p(ICD_9), "icd9_" + phenotype.name)
+        df = add_diagnosis(df, phenotype.icd10_codes, p(ICD_10), "icd10_" + phenotype.name)
+        df = add_diagnosis(df, phenotype.sr_codes, p(SR_20002), "sr_20002_" + phenotype.name, cast_to_int=True)
+
+        for i in range(4):
+            df = add_diagnosis(df, phenotype.sr_codes , p(SR_20002, i), f"sr_20002_{i}_{phenotype.name}",add_diagnosis=False, cast_to_int=True)
+
+        df = add_diagnosis(df, phenotype.ever_diag_codes, EVER_DIAG, "ever_diag_" + phenotype.name)
 
         if not diagnoses_names:
             return df

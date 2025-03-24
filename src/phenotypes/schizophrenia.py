@@ -1,5 +1,4 @@
 from src.phenotypes import PhenoType
-from src.query_strategy import ScoreBasedQueryStrategy
 
 schizophrenia = PhenoType(name="Schizophrenia",
                          icd9_codes=["2950", "2951", "2952", "2953", "295F4", "2955", "2956", "2957", "2958", "2959"],

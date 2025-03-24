@@ -1,7 +1,7 @@
 from typing import Optional
 
 from pyspark.sql import Column
-from pyspark.sql.functions import  col
+from pyspark.sql.functions import col, array, lit, arrays_overlap
 
 
 def p(field_number:int,instance_number:Optional[int]=None, array_number: Optional[int]=None)->str:
@@ -16,3 +16,7 @@ def p(field_number:int,instance_number:Optional[int]=None, array_number: Optiona
 
 def pcol(field_number:int,instance_number:Optional[int]=None, array_number: Optional[int]=None)->Column:
     return col(p(field_number,instance_number,array_number))
+
+def contains_any(array_column: Column,values:list)->Column:
+
+    return arrays_overlap(array_column,  array(*[lit(n) for n in values]))

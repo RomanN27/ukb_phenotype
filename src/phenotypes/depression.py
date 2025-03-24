@@ -116,5 +116,5 @@ diagnosed_depression = PhenoType(name="DiagnosedDepression", icd9_codes=["3119",
                          ever_diag_codes=["11"])
 
 
-depression_name  ="GeneralDepression"
+depression_name  ="GeneralDepression" #specified here to be imported by bipolar.py
 general_depression = PhenoType.merge_phenotypes(depression_name,probable_depression,phq_9_depression,life_time_depression,diagnosed_depression)
