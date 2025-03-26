@@ -89,7 +89,8 @@ class OneBooleanFieldPhenotype(DerivedPhenotype):
 @dataclass
 class AnyDerivedPhenotype(DerivedPhenotype):
     def query_boolean_column(self, df: DataFrame) -> Tuple[DataFrame, Column]:
-        return df, reduce(lambda x, y: x | y, [self.pcol(x) for x in self.phenotype_source_field_numbers + self.derived_phenotype_sources])
+        derived_phenotype_names = [x.name for x in self.derived_phenotype_sources]
+        return df, reduce(lambda x, y: x | y, [self.pcol(x) for x in self.phenotype_source_field_numbers + derived_phenotype_names])
 
 @dataclass
 class CodeDerivedPhenotype(DerivedPhenotype):
