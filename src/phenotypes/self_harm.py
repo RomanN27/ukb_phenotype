@@ -50,7 +50,7 @@ icd10_self_harm = ICD10DerivedPhenoType(
 
 sr_self_harm = VerbalInterviewDerivedPhenoType(
     name=PhenotypeName.SELF_HARM.vi(),
-    phenotype_source_codes=["1290"]
+    phenotype_source_codes=[ 1290 ]
 )
 
 self_harm = AnyDerivedPhenotype(

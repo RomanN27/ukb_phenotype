@@ -11,7 +11,7 @@ icd10_eating_disorder = ICD10DerivedPhenoType(name=PhenotypeName.EATING_DISORDER
                              "F509"  # Eating disorder, unspecified
                          ])
 
-sr_eating_disorder = VerbalInterviewDerivedPhenoType(name=PhenotypeName.EATING_DISORDER.vi(), phenotype_source_codes=["1470"])
+sr_eating_disorder = VerbalInterviewDerivedPhenoType(name=PhenotypeName.EATING_DISORDER.vi(), phenotype_source_codes=[ 1470 ])
 ever_diag_eating_disorder = EverDiagnosedDerivedPhenoType(name=PhenotypeName.EATING_DISORDER.ever_diag(), phenotype_source_codes=[13, 12, 16])
 
 eating_disorder = AnyDerivedPhenotype(name=PhenotypeName.EATING_DISORDER, derived_phenotype_sources=[icd9_eating_disorder, icd10_eating_disorder, sr_eating_disorder, ever_diag_eating_disorder])

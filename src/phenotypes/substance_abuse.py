@@ -61,7 +61,7 @@ icd10_substance_abuse = ICD10DerivedPhenoType(PhenotypeName.SUBSTANCE_ABUSE_NON_
                              "F19.1", "F19.2", "F19.3", "F19.4"
                          ])
 icd9_substance_abuse = ICD9DerivedPhenoType(PhenotypeName.SUBSTANCE_ABUSE_NON_ALCOHOLIC.icd9(), phenotype_source_codes=["3040"])
-sr_substance_abuse = VerbalInterviewDerivedPhenoType(PhenotypeName.SUBSTANCE_ABUSE_NON_ALCOHOLIC.vi(), phenotype_source_codes=["1409", "1410"])
+sr_substance_abuse = VerbalInterviewDerivedPhenoType(PhenotypeName.SUBSTANCE_ABUSE_NON_ALCOHOLIC.vi(), phenotype_source_codes=[ 1409 ,  1410 ])
 ever_diag_substance_abuse = EverDiagnosedDerivedPhenoType(PhenotypeName.SUBSTANCE_ABUSE_NON_ALCOHOLIC.ever_diag(), phenotype_source_codes=[8])
 
 substance_abuse_non_alcoholic = AnyDerivedPhenotype(name = PhenotypeName.SUBSTANCE_ABUSE_NON_ALCOHOLIC, derived_phenotype_sources = [questionnaire_substance_abuse_non_alcoholic, icd10_substance_abuse, icd9_substance_abuse, sr_substance_abuse, ever_diag_substance_abuse])

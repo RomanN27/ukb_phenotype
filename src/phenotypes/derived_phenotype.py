@@ -126,7 +126,7 @@ class ICD10DerivedPhenoType(CodeDerivedPhenotype):
 
 @dataclass
 class VerbalInterviewDerivedPhenoType(CodeDerivedPhenotype):
-    phenotype_source_codes: List[str] = field(default_factory=list)
+    phenotype_source_codes: List[int] = field(default_factory=list)
     source_field_number:ClassVar[int] = 20002
     n_instances: Optional[int] = field(default=None, init=False)
 

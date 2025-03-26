@@ -24,7 +24,7 @@ icd10_anxiety = ICD10DerivedPhenoType(
 
 sr_anxiety = VerbalInterviewDerivedPhenoType(
     name=PhenotypeName.ANXIETY.vi(),
-    phenotype_source_codes=["1287", "1614"]
+    phenotype_source_codes=[ 1287 ,  1614 ]
 )
 
 ever_diag_anxiety = EverDiagnosedDerivedPhenoType(

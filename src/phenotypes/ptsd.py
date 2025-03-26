@@ -28,7 +28,7 @@ icd10_ptsd = ICD10DerivedPhenoType(
 
 sr_ptsd = VerbalInterviewDerivedPhenoType(
     name=PhenotypeName.PTSD.vi(),
-    phenotype_source_codes=["1469"]
+    phenotype_source_codes=[ 1469 ]
 )
 
 ptsd  = AnyDerivedPhenotype(PhenotypeName.PTSD, derived_phenotype_sources = [icd10_ptsd, sr_ptsd, ptds_pcl6])

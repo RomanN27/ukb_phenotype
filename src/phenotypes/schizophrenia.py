@@ -39,7 +39,7 @@ icd10_schizophrenia = ICD10DerivedPhenoType(
 
 sr_schizophrenia = VerbalInterviewDerivedPhenoType(
     name=PhenotypeName.SCHIZOPHRENIA.vi(),
-    phenotype_source_codes=["1289"]
+    phenotype_source_codes=[ 1289 ]
 )
 
 ever_diag_schizophrenia = EverDiagnosedDerivedPhenoType(

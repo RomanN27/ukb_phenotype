@@ -13,7 +13,7 @@ icd10_ocd = ICD10DerivedPhenoType(
 
 sr_ocd = VerbalInterviewDerivedPhenoType(
     name=PhenotypeName.OCD.vi(),
-    phenotype_source_codes=["1615"]
+    phenotype_source_codes=[ 1615 ]
 )
 
 ever_diag_ocd = EverDiagnosedDerivedPhenoType(

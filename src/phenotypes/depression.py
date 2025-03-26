@@ -85,7 +85,7 @@ life_time_depression =DerivedPhenotype(
 )
 icd9_depression = ICD9DerivedPhenoType(name=PhenotypeName.DEPRESSION.icd9(), phenotype_source_codes=["3119", "3004"])
 icd10_depression = ICD10DerivedPhenoType(name=PhenotypeName.DEPRESSION.icd10(), phenotype_source_codes=["F32.0", "F32.1", "F32.2", "F32.3", "F32.8", "F32.9"])
-sr_depression = VerbalInterviewDerivedPhenoType(name=PhenotypeName.DEPRESSION.vi(), phenotype_source_codes=["1278", "1279", "1280", "1281", "1282", "1283", "1284", "1285", "1286"])
+sr_depression = VerbalInterviewDerivedPhenoType(name=PhenotypeName.DEPRESSION.vi(), phenotype_source_codes=[ 1278 ,  1279 ,  1280 ,  1281 ,  1282 ,  1283 ,  1284 ,  1285 ,  1286 ])
 ever_diag_depression = EverDiagnosedDerivedPhenoType(name=PhenotypeName.DEPRESSION.ever_diag(), phenotype_source_codes=[11])
 
 

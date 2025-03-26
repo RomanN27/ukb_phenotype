@@ -14,7 +14,7 @@ def insomnia_query(phenotype:DerivedPhenotype,df: DataFrame) -> Tuple[DataFrame,
 
 vi_insomnia = VerbalInterviewDerivedPhenoType(
     name=PhenotypeName.INSOMNIA.vi(),
-    phenotype_source_codes=["1616"]
+    phenotype_source_codes=[ 1616 ]
 )
 
 touch_screen_insomnia = DerivedPhenotype(name = PhenotypeName.INSOMNIA.touch_screen(),phenotype_source_field_numbers=[1200], query_callable=insomnia_query)
