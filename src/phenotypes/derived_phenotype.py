@@ -44,7 +44,7 @@ class DerivedPhenotype:
         if self.query is None:
             raise NotImplementedError()
 
-        return self.query_callable(df)
+        return self.query_callable(self,df)
 
     def query_instances(self,df:DataFrame) -> DataFrame:
         old_p = self.p
