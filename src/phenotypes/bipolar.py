@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from pyspark.sql import Column, DataFrame
 from pyspark.sql.functions import col, when, size
 
-from src.phenotypes import ScoredBasedDerivedPhenoType, general_depression, ScoredBasedQuery, get_min_score_to_boolean
+from src.phenotypes import ScoredBasedDerivedPhenoType, general_depression, get_min_score_to_boolean
 from src.phenotypes.phenotype_names import PhenotypeName
 from src.phenotypes.derived_phenotype import AnyDerivedPhenotype
 
@@ -23,15 +23,13 @@ def probable_bipolar_scorer(phenotype:ScoredBasedDerivedPhenoType) -> Column:
     score += (phenotype.pcol(5674) == 12).cast("int")
     return score
 
-probable_bipoler_query =ScoredBasedQuery(
-
-)
 
 probable_bipolar = ScoredBasedDerivedPhenoType(PhenotypeName.PROBABLE_BIPOLAR,
                                    score_levels=[1, 2],
                                    severity_names=["No Probable Bipolar","Probable Bipolar II", "Probable Bipolar I"],
                                    phenotype_source_field_numbers=[4642, 4653, 6156, 5663, 5674],
-                                   n_instances=4)
+                                   n_instances=4,
+                                               make_score_column=probable_bipolar_scorer)
 
 def life_time_bipolar_scorer(phenotype:ScoredBasedDerivedPhenoType):
 

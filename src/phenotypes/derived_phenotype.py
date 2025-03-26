@@ -137,42 +137,6 @@ class EverDiagnosedDerivedPhenoType(CodeDerivedPhenotype):
 
 
 
-class ScoredBasedQuery:
-
-    def query_instance(self, df: DataFrame, i: int, old_name: str, old_p: str) -> DataFrame:
-        old_score_name = self.phenotype.score_name
-        old_severity_name = self.phenotype.severity_name
-
-        self.phenotype.score_name = f"{old_score_name}_{i}"
-        self.phenotype.severity_name = f"{old_severity_name}_{i}"
-
-        df = self.phenotype.query_instance(df, i, old_name, old_p)
-
-        self.phenotype.score_name = old_score_name
-        self.phenotype.severity_name = old_severity_name
-
-        return df
-
-    def __call__(self, phenotype: DerivedPhenotype, df: DataFrame) -> Tuple[DataFrame, Column]:
-        self.phenotype = phenotype
-        return self.query_boolean_column(df)
-
-    def query_boolean_column(self, df: DataFrame) -> Tuple[DataFrame, Column]:
-        df = self.preprocess_score_columns(self.phenotype,df)
-        df = df.withColumn(self.phenotype.score_name, self.make_score_column(self.phenotype))
-
-        boundaries = [(float("-inf"), self.phenotype.score_levels[0])] + \
-                     [(self.phenotype.score_levels[i], self.phenotype.score_levels[i + 1]) for i in range(len(self.phenotype.score_levels) - 1)] + \
-                     [(self.phenotype.score_levels[-1], float("inf"))]
-
-        if self.phenotype.severity_names is not None:
-            risk_expr = when(col(self.phenotype.score_name).isNotNull(), None)  # Default case
-            for (min_val, max_val), label in zip(boundaries, self.phenotype.severity_names):
-                risk_expr = risk_expr.when((col(self.phenotype.severity_name) >= min_val) &
-                                           (col(self.phenotype.severity_name) < max_val),
-                                           label)
-
-        return df, self.score_to_boolean(self.phenotype,col(self.phenotype.score_name))
 
 def replace_missing_values(phenotype: "ScoredBasedDerivedPhenoType", df: DataFrame) -> DataFrame:
     # Replace missing values (-818) with 0
