@@ -1,39 +1,44 @@
+from src.phenotypes import ICD9DerivedPhenoType, ICD10DerivedPhenoType, VerbalInterviewDerivedPhenoType, EverDiagnosedDerivedPhenoType, ScoredBasedDerivedPhenoType, AnyDerivedPhenotype
+from src.phenotypes.phenotype_names import PhenotypeName
 
-from src.phenotypes import DerivedPhenotype
-from src.query_strategy import ScoreBasedQueryStrategy
-from pyspark.sql import DataFrame
-from pyspark.sql.functions import col
+gad7_anxiety = ScoredBasedDerivedPhenoType(
+    name=PhenotypeName.ANXIETY_GAD7,
+    phenotype_source_field_numbers=[20506, 20509, 20520, 20515, 20516, 20505, 20512],
+    score_levels=[5, 10, 15],
+    severity_names=["Low", "Mild", "Moderate", "Severe"]
+)
 
+icd9_anxiety = ICD9DerivedPhenoType(
+    name=PhenotypeName.ANXIETY.icd9(),
+    phenotype_source_codes=["3000", "3001", "3002", "3009", "300"]
+)
 
-gad7_anxiety_name = "GAD7_Anxiety"
+icd10_anxiety = ICD10DerivedPhenoType(
+    name=PhenotypeName.ANXIETY.icd10(),
+    phenotype_source_codes=[
+        "F064", "F93.0", "F931", "F932",
+        "F40", "F400", "F401", "F402", "F408", "F409",
+        "F41", "F410", "F411", "F412", "F413", "F418", "F419"
+    ]
+)
 
-GAD_7_fields = [20506, 20509, 20520, 20515, 20516, 20505, 20512]
+sr_anxiety = VerbalInterviewDerivedPhenoType(
+    name=PhenotypeName.ANXIETY.vi(),
+    phenotype_source_codes=["1287", "1614"]
+)
 
-def gad7_query(df: DataFrame) -> DataFrame:
+ever_diag_anxiety = EverDiagnosedDerivedPhenoType(
+    name=PhenotypeName.ANXIETY.ever_diag(),
+    phenotype_source_codes=[1, 6, 17]
+)
 
-    GAD_7_score_names = ["Low", "Mild", "Moderate", "Severe"]
-    gad7_score_query = ScoreBasedQueryStrategy(
-        field_numbers=GAD_7_fields,
-        score_column="GAD7_score",
-        risk_column="GAD7_risk",
-        score_levels=[5, 10, 15],
-        score_level_names=GAD_7_score_names
-    )
-    df = gad7_score_query(df)
-
-    df = df.withColumn(gad7_anxiety_name, col("GAD7_score") >= 10)
-    return df
-
-gad7_anxiety = DerivedPhenotype(name=gad7_anxiety_name,
-                                associated_field_numbers=GAD_7_fields,
-                                query=gad7_query)
-
-
-diagnosed_anxiety = DerivedPhenotype(name="Diagnosed_Anxiety", icd9_codes=["3000", "3001", "3002", "3009", "300"],
-                                     icd10_codes=["F064", "F93.0", "F931", "F932", "F40", "F400", "F401", "F402", "F408", "F409",
-                                      "F41", "F410", "F411",
-                                      "F412", "F413", "F418", "F419"], sr_codes=["1287", "1614"],
-                                     ever_diag_codes=["1", "6", "17"])
-
-
-anxiety  = DerivedPhenotype.merge_phenotypes("Anxiety", gad7_anxiety, diagnosed_anxiety)
+anxiety = AnyDerivedPhenotype(
+    name=PhenotypeName.ANXIETY,
+    derived_phenotype_sources=[
+        gad7_anxiety,
+        icd9_anxiety,
+        icd10_anxiety,
+        sr_anxiety,
+        ever_diag_anxiety
+    ]
+)

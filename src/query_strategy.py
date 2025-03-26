@@ -1,10 +1,9 @@
 from pyspark.sql.functions import when
 
 from src.phenotypes import DerivedPhenotype
-from src.utils import pcol, p
-from typing import List
+from typing import List, Dict, Union
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import array_intersect, lit, size
+from pyspark.sql.functions import array_intersect, lit, size ,array
 
 import json
 import re
@@ -14,12 +13,7 @@ from functools import reduce
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import array_distinct, array_compact, array, col, concat
 
-ICD_10 = 41270
-ICD_9 = 41271
-SR_20002 = 20002
-EVER_DIAG = 20544
-
-DIAGNOSIS_FIELDS = [ICD_10, ICD_9, SR_20002, EVER_DIAG]
+import os
 
 
 def load_json(file_path):
@@ -30,14 +24,13 @@ def load_json(file_path):
 class PhenotypeQueryManager:
     def __init__(self, spark: SparkSession):
 
-        db = "database_gv04zbqj4qvkbzgxvpxzf6j3__app162313_20241004200320"
+        db = os.environ.get("DB_NAME","database_gv04zbqj4qvkbzgxvpxzf6j3__app162313_20241004200320")
         spark.sql(f"USE {db}")
 
         self.spark = spark
 
         self._initialize_mappings()
 
-        self.df = self.get_table(ICD_10, ICD_9, SR_20002, EVER_DIAG)
 
     def _initialize_mappings(self):
         self.field_names_to_table_names: dict[str, str] = load_json("field_names_to_table_names.json")
@@ -101,20 +94,7 @@ class PhenotypeQueryManager:
             spark_table = spark_table.withColumn(field_name, array_distinct(concat(*field_instances)))
         return spark_table
 
-    @staticmethod
-    def intersect_arrays(df: DataFrame, array_column: str, codes: List[str], name: str) -> DataFrame:
-        """
-        Intersects a column of arrays with a given set of codes and adds a boolean flag column.
 
-        :param df: The Spark DataFrame.
-        :param array_column: Column name containing array values.
-        :param codes: List of codes to match.
-        :param name: Prefix for the new columns.
-        :return: Updated DataFrame.
-        """
-        return df.withColumn(f"{name}_codes",
-                             array_intersect(col(array_column), array(*[lit(n) for n in codes]))) \
-            .withColumn(f"{name}", size(col(f"{name}_codes")) > 0)
 
     def get_table_specific_field_names(self, field_numbers, table):
         relevant_field_numbers = self.table_names_to_field_numbers[table] & set(field_numbers)
@@ -138,113 +118,59 @@ class PhenotypeQueryManager:
             key: {int(f.split("_")[0][1:]) for f in value if f != "eid" and "hierarchy" not in f} for key, value in
             table_names_to_field_names.items()}
 
-    def query_diagnoses(self, df: DataFrame, phenotype: "DerivedPhenotype") -> DataFrame:
-        diagnoses_names = []
 
-        def add_diagnosis(df, codes, field, name,add_diagnosis=True ,cast_to_int=False):
-            if codes:
-                if cast_to_int:
-                    codes = [int(x) for x in codes]
-                df = self.intersect_arrays(df, field, codes, name)
-                if add_diagnosis:
-                    diagnoses_names.append(name)
-            return df
 
-        df = add_diagnosis(df, phenotype.icd9_codes, p(ICD_9), "icd9_" + phenotype.name)
-        df = add_diagnosis(df, phenotype.icd10_codes, p(ICD_10), "icd10_" + phenotype.name)
-        df = add_diagnosis(df, phenotype.sr_codes, p(SR_20002), "sr_20002_" + phenotype.name, cast_to_int=True)
+    def query(self, *phenotypes: "DerivedPhenotype", return_only_created_columns = True) -> DataFrame:
 
-        for i in range(4):
-            df = add_diagnosis(df, phenotype.sr_codes , p(SR_20002, i), f"sr_20002_{i}_{phenotype.name}",add_diagnosis=False, cast_to_int=True)
-
-        df = add_diagnosis(df, phenotype.ever_diag_codes, EVER_DIAG, "ever_diag_" + phenotype.name)
-
-        if not diagnoses_names:
-            return df
-
-        any_diagnosis = reduce(lambda x, y: x | y, [col(name) for name in diagnoses_names])
-        df = df.withColumn(phenotype.name, any_diagnosis)
-
-        return df
-
-    def query(self, df: DataFrame, phenotype: "DerivedPhenotype") -> DataFrame:
-        if phenotype.associated_field_numbers:
-            new_df = self.get_table(*phenotype.associated_field_numbers)
-            df = df.join(new_df, on="eid", how="outer")
-
-        if phenotype.query:
-            df = phenotype.query(df)
-        df = self.query_diagnoses(df, phenotype)
-        return df
-
-    def query_all(self, *phenotypes: "DerivedPhenotype") -> DataFrame:
-
-        df = self.get_relevant_data_frame(*phenotypes)
+        df = self.get_source_table(phenotypes)
+        column_names_to_drop = set(df.columns) - {"eid"} if return_only_created_columns else set()
 
         for phenotype in phenotypes:
-            if phenotype.query:
+            if phenotype.name not in df.columns:
                 df = phenotype.query(df)
-                
-            df = self.query_diagnoses(df, phenotype)
-            
+
+
+        phenotype_levels = self.get_keys_at_each_level(*phenotypes)
+
+        for level, phenotypes in phenotype_levels.items():
+            phenotype_col_names = [p.name for p in phenotypes]
+            df = df.withColumn(
+                f'level_{level}_derived_phenotypes',
+                array(*[when(col(c), lit(c)).otherwise(lit(None)).alias(c) for c in phenotype_col_names])
+            )
+
+        df  = df.drop(*column_names_to_drop)
+
         return df
 
-    def get_relevant_data_frame(self, *phenotypes: "DerivedPhenotype") -> DataFrame:
-        df = self.df
-        # remove duplicate fieldnumbers since this causes issues with spark
-        unique_field_numbers = set()
+    def get_source_table(self, phenotypes):
+        field_numbers = set()
         for phenotype in phenotypes:
-            unique_field_numbers |= set(phenotype.associated_field_numbers)
-        unique_field_numbers -= set(DIAGNOSIS_FIELDS)
-        if unique_field_numbers:
-            new_df = self.get_table(*unique_field_numbers)
-            df = df.join(new_df, on="eid", how="outer")
+            field_numbers.update(phenotype.phenotype_source_field_numbers)
+        df = self.get_table(*field_numbers)
         return df
 
+    @staticmethod
+    def get_keys_at_each_level(d: Dict[str, Union[Dict, str]], level: int = 0,
+                               result: Dict[int, List[str]] = None) -> Dict[int, List[DerivedPhenotype]]:
+        if result is None:
+            result = {}
 
-class ScoreBasedQueryStrategy:
-    """ Implements query logic based on scoring rules. """
+        # If the current level doesn't exist in the result, initialize it as an empty list
+        if level not in result:
+            result[level] = []
 
-    def __init__(self, field_numbers: List[int], score_column: str, risk_column: str,
-                 score_levels: List[int], score_level_names: List[str]):
-        """
-        :param field_numbers: List of field numbers used for scoring.
-        :param score_column: Name of the score column.
-        :param risk_column: Name of the risk level column.
-        :param score_levels: List of numerical thresholds for score levels.
-        :param score_level_names: Corresponding names for the score levels.
-        """
-        self.field_numbers = field_numbers
-        self.score_column = score_column
-        self.risk_column = risk_column
-        self.score_levels = score_levels
-        self.score_level_names = score_level_names
+        # Add keys of the current dictionary to the respective level
+        result[level].extend(d.keys())
 
-    def __call__(self, df: DataFrame) -> DataFrame:
-        """
-        Compute scores and assign risk levels.
+        # Recurse into nested dictionaries
+        for key, value in d.items():
+            if isinstance(value, dict):
+                PhenotypeQueryManager.get_keys_at_each_level(value, level + 1, result)
 
-        :param df: The input Spark DataFrame.
-        :return: DataFrame with score and risk classification.
-        """
-        # Replace missing values (-818) with 0
-        df = df.replace(-818, 0)
+        return result
 
-        # Compute the total score
-        df = df.withColumn(self.score_column, sum([pcol(x) for x in self.field_numbers]))
 
-        # Define boundaries for risk classification
-        boundaries = [(float("-inf"), self.score_levels[0])] + \
-                     [(self.score_levels[i], self.score_levels[i + 1]) for i in range(len(self.score_levels) - 1)] + \
-                     [(self.score_levels[-1], float("inf"))]
 
-        # Assign risk levels using a cascading condition
-        risk_expr = when(col(self.score_column).isNotNull(), None)  # Default case
-        for (min_val, max_val), label in zip(boundaries, self.score_level_names):
-            risk_expr = risk_expr.when((col(self.score_column) >= min_val) & (col(self.score_column) < max_val), label)
 
-        # Apply risk classification and filter out null scores
-        df = df.withColumn(self.risk_column, risk_expr).where(col(self.score_column).isNotNull())
-
-        return df
 

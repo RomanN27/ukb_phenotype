@@ -1,71 +1,67 @@
-from pyspark.sql import DataFrame
-from pyspark.sql.functions import size, when, col
-from src.phenotypes import DerivedPhenotype, depression_name
-from src.utils import pcol
-from functools import reduce
+from dataclasses import dataclass
 
-def probable_bipolar_query(df: DataFrame) -> DataFrame:
-    instances = 4
-    for i in range(instances):
-        probable_bipolar_ii = when(
-            (
-                    (pcol(4642,i) == 1) | (pcol(4653,i) == 1)  # Condition 1: Manic/hypomanic symptoms
-            ) &
-            (
-                    size(pcol(6156,i)) >= 3  # Condition 2: At least three symptoms
-            ) &
-            (
-                (pcol(5663,i) == 13)  # Condition 3: Specific symptom criteria
-            ), True).otherwise(False)
+from pyspark.sql import Column, DataFrame
+from pyspark.sql.functions import col, when, size
 
-        df = df.withColumn(f"probable_bipolar_II_{i}", probable_bipolar_ii)
+from src.phenotypes import ScoredBasedDerivedPhenoType, general_depression, ScoredBasedQuery, get_min_score_to_boolean
+from src.phenotypes.phenotype_names import PhenotypeName
+from src.phenotypes.derived_phenotype import AnyDerivedPhenotype
 
-        df = df.withColumn(f"probable_bipolar_I_{i}",
-                           when(col(f"probable_bipolar_II_{i}") & (pcol(5674,i) == 12), True).otherwise(False))
-    
-    any_probable_bipolar_ii = [col(f"probable_bipolar_II_{i}") for i in range(instances)]
-    any_probable_bipolar_i = [col(f"probable_bipolar_I_{i}") for i in range(instances)]
-    
-    df = df.withColumn("probable_bipolar_II", reduce(lambda x, y: x | y, any_probable_bipolar_ii))
-    df = df.withColumn("probable_bipolar_I", reduce(lambda x, y: x | y, any_probable_bipolar_i))
-    
-    df = df.withColumn("ProbableBipolar", col("probable_bipolar_I") | col("probable_bipolar_II"))
-    return df
+def probable_bipolar_scorer(phenotype:ScoredBasedDerivedPhenoType) -> Column:
+    probable_bipolar_ii=when((
+            (phenotype.pcol(4642) == 1) | (phenotype.pcol(4653) == 1)  # Condition 1: Manic/hypomanic symptoms
+    ) &
+    (
+            size(phenotype.pcol(6156)) >= 3  # Condition 2: At least three symptoms
+    ) &
+    (
+        (phenotype.pcol(5663) == 13)  # Condition 3: Specific symptom criteria
+    ), True).otherwise(False)
 
-probable_bipolar = DerivedPhenotype(name="ProbableBipolar",
-                                    associated_field_numbers=[4642, 4653, 6156, 5663, 5674],
-                                    query=probable_bipolar_query)
 
-def life_time_bipolar_query(df: DataFrame) -> DataFrame:
+    score = probable_bipolar_ii.cast("int")
+    score += (phenotype.pcol(5674) == 12).cast("int")
+    return score
+
+probable_bipoler_query =ScoredBasedQuery(
+
+)
+
+probable_bipolar = ScoredBasedDerivedPhenoType(PhenotypeName.PROBABLE_BIPOLAR,
+                                   score_levels=[1, 2],
+                                   severity_names=["No Probable Bipolar","Probable Bipolar II", "Probable Bipolar I"],
+                                   phenotype_source_field_numbers=[4642, 4653, 6156, 5663, 5674],
+                                   n_instances=4)
+
+def life_time_bipolar_scorer(phenotype:ScoredBasedDerivedPhenoType):
+
+
     bipolar_affective_disorder_ii = when(
-        (col(depression_name) == 1) &  # Prior depression phenotype
+        (col(general_depression.name) == 1) &  # Prior depression phenotype
         (
-                (pcol(20501) == 1) | (pcol(20502) == 1)  # Mania or extreme irritability
+                (phenotype.pcol(20501) == 1) | (phenotype.pcol(20502) == 1)  # Mania or extreme irritability
         ) &
         (
-            (size(pcol(20548)) >= 4)  # At least four symptoms
+            (size(phenotype.pcol(20548)) >= 4)  # At least four symptoms
         ) &
         (
-                pcol(20492) == 3  # Period of mania or irritability
+                phenotype.pcol(20492) == 3  # Period of mania or irritability
         ), True).otherwise(False)
 
-    df = df.withColumn("bipolar_affective_disorder_II", bipolar_affective_disorder_ii)
 
-    df = df.withColumn("bipolar_affective_disorder_I",
-                       when(col("bipolar_affective_disorder_II") & (pcol(20493) == 1), True).otherwise(False))
-    
-    df = df.withColumn("LifetimeBipolar", col("bipolar_affective_disorder_I") | col("bipolar_affective_disorder_II"))
-    return df
-
-life_time_bipolar = DerivedPhenotype(name="LifetimeBipolar",
-                                     associated_field_numbers=[20501, 20502, 20548, 20492, 20493],
-                                     query=life_time_bipolar_query)
+    score = bipolar_affective_disorder_ii.cast("int")
+    score += (phenotype.pcol(20493) == 12).cast("int")
+    return score
 
 
-diagnosed_bipolar = DerivedPhenotype(name="Bipolar", icd9_codes=["2960", "2961", "2966"], icd10_codes=[
-            "F30.0", "F30.1", "F30.2", "F30.8", "F30.9",  # Manic Episode
-            "F31.0", "F31.1", "F31.2", "F31.3", "F31.4", "F31.5", "F31.6", "F31.7", "F31.8", "F31.9"],
-                                     sr_codes=["1291"], ever_diag_codes=["10"])
+life_time_bipolar =ScoredBasedDerivedPhenoType(PhenotypeName.LIFE_TIME_BIPOLAR,
+                                    score_levels=[1, 2],
+                                    severity_names=["No Life Time Bipolar","Life Time Bipolar II", "Life Time Bipolar I"],
+                                    phenotype_source_field_numbers=[4642, 4653, 6156, 5663, 5674],
+                                    derived_phenotype_sources=[general_depression],
+                                               make_score_column=life_time_bipolar_scorer,
+                                               score_to_boolean=get_min_score_to_boolean(0))
 
-bipolar  = DerivedPhenotype.merge_phenotypes("Bipolar", probable_bipolar, life_time_bipolar, diagnosed_bipolar)
 
+
+bipolar  = AnyDerivedPhenotype(name=PhenotypeName.BIPOLAR, derived_phenotype_sources=[life_time_bipolar, probable_bipolar])
