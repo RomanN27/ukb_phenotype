@@ -1,19 +1,17 @@
-from pyspark.sql.functions import when
-
-from src.phenotypes import DerivedPhenotype
-from typing import List, Dict, Union
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import array_intersect, lit, size ,array
-
 import json
+import os
 import re
 from collections import defaultdict
 from functools import reduce
+from typing import List, Dict, Union
 
 from pyspark.sql import DataFrame
+from pyspark.sql import SparkSession
 from pyspark.sql.functions import array_distinct, array_compact, array, col, concat
+from pyspark.sql.functions import lit
+from pyspark.sql.functions import when
 
-import os
+from src.phenotypes import DerivedPhenotype
 
 
 def load_json(file_path):
@@ -144,12 +142,17 @@ class PhenotypeQueryManager:
         return df
 
     def get_source_table(self, phenotypes):
-        field_numbers = set()
-        for phenotype in phenotypes:
-            field_numbers.update(phenotype.phenotype_source_field_numbers)
+        field_numbers = self.get_nested_source_field_numbers(phenotypes)
         df = self.get_table(*field_numbers)
         return df
-
+    @staticmethod
+    def get_nested_source_field_numbers(phenotypes: set[DerivedPhenotype]):
+        if not phenotypes:
+            return set()
+        field_numbers = { field_numbers for phenotype in phenotypes for field_numbers in phenotype.phenotype_source_field_numbers }
+        source_phenotypes =  { phenotype_source for phenotype in phenotypes for phenotype_source in phenotype.derived_phenotype_sources }
+        field_numbers |= PhenotypeQueryManager.get_nested_source_field_numbers(source_phenotypes)
+        return field_numbers
     @staticmethod
     def get_keys_at_each_level(d: Dict[str, Union[Dict, str]], level: int = 0,
                                result: Dict[int, List[str]] = None) -> Dict[int, List[DerivedPhenotype]]:
