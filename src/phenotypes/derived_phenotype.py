@@ -97,6 +97,9 @@ class CodeDerivedPhenotype(DerivedPhenotype):
     phenotype_source_field_numbers: List[int] = field(default_factory=list, init=False)
     phenotype_source_codes: List[str|int] = field(default_factory=list)
 
+    def __post_init__(self):
+        self.phenotype_source_field_numbers = [self.source_field_number]
+
 
     def query_boolean_column(self, df :DataFrame) -> Tuple[DataFrame, Column]:
         bool_col = contains_any(self.pcol(self.source_field_number), self.phenotype_source_codes)
