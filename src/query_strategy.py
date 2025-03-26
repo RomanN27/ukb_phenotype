@@ -146,11 +146,11 @@ class PhenotypeQueryManager:
         df = self.get_table(*field_numbers)
         return df
     @staticmethod
-    def get_nested_source_field_numbers(phenotypes: set[DerivedPhenotype]):
+    def get_nested_source_field_numbers(phenotypes: list[DerivedPhenotype]):
         if not phenotypes:
-            return set()
+            return []
         field_numbers = { field_numbers for phenotype in phenotypes for field_numbers in phenotype.phenotype_source_field_numbers }
-        source_phenotypes =  { phenotype_source for phenotype in phenotypes for phenotype_source in phenotype.derived_phenotype_sources }
+        source_phenotypes =  [  phenotype_source for phenotype in phenotypes for phenotype_source in phenotype.derived_phenotype_sources  ]
         field_numbers |= PhenotypeQueryManager.get_nested_source_field_numbers(source_phenotypes)
         return field_numbers
     @staticmethod
