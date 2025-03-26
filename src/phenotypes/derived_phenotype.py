@@ -1,5 +1,5 @@
 from abc import abstractmethod
-from typing import Optional, Callable, Tuple, override
+from typing import Optional, Callable, Tuple
 from pyspark.sql import DataFrame, Column
 from pyspark.sql.functions import col, when
 from typing import ClassVar
