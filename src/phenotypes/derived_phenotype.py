@@ -60,7 +60,7 @@ class DerivedPhenotype:
     def query_instance(self, df, i, old_name, old_p,old_p_col):
         self.name = f"{old_name}_{i}"
         self.p = partial(old_p, instance_number=i)
-        self.p_col = partial(old_p_col, instance_number=i)
+        self.pcol = partial(old_p_col, instance_number=i)
         df, boolean_column = self.query_boolean_column(df)
         df = df.withColumn(self.name, boolean_column)
         return df
