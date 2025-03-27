@@ -5,20 +5,12 @@ from src.phenotypes import ICD10DerivedPhenoType, VerbalInterviewDerivedPhenoTyp
 from src.phenotypes.phenotype_names import PhenotypeName
 
 
-# The substraction of one is not necessary anymore
-# def pcl6_scorer(phenotype:ScoredBasedDerivedPhenoType)->Column:
-#
-#         pcl6_score = (
-#                 (phenotype.pcol(20497) - 1) +
-#                 (phenotype.pcol(20498) - 1) +
-#                 (phenotype.pcol(20495) - 1) +
-#                 (phenotype.pcol(20496) - 1) +
-#                 (phenotype.pcol(20494) - 1) +
-#                 (phenotype.pcol(20508) - 1))
-#         return pcl6_score
-#
 
-ptds_pcl6 =ScoredBasedDerivedPhenoType(name=PhenotypeName.PTSD_PCL6, phenotype_source_field_numbers=[20497, 20498, 20495, 20496, 20494, 20508], score_levels=[14])
+
+
+
+ptds_pcl6 =ScoredBasedDerivedPhenoType(name=PhenotypeName.PTSD_PCL6,
+                                       phenotype_source_field_numbers=[20497, 20498, 20495, 20496, 20494, 20508], score_levels=[14 -6]) # -6 since the ukb scores 0-4 instead of 1-5 as is usual. There are 6 questions in the PCL6,  hence we subtract 6 from the sum of the scores to get the total score.
 
 
 
