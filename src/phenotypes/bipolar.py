@@ -1,9 +1,11 @@
 from dataclasses import dataclass
+from functools import partial
 
 from pyspark.sql import Column, DataFrame
 from pyspark.sql.functions import col, when, size
 
-from src.phenotypes import ScoredBasedDerivedPhenoType, general_depression, get_min_score_to_boolean
+from src.phenotypes import ScoredBasedDerivedPhenoType, general_depression, get_min_score_to_boolean, \
+    replace_missing_values
 from src.phenotypes.phenotype_names import PhenotypeName
 from src.phenotypes.derived_phenotype import AnyDerivedPhenotype
 
@@ -51,12 +53,14 @@ def life_time_bipolar_scorer(phenotype:ScoredBasedDerivedPhenoType):
     score += (phenotype.pcol(20493) == 12).cast("int")
     return score
 
+f = partial(replace_missing_values, field_numbers_to_exclude=[20548])
 
 life_time_bipolar =ScoredBasedDerivedPhenoType(PhenotypeName.LIFE_TIME_BIPOLAR,
                                     score_levels=[1, 2],
                                     severity_names=["No Life Time Bipolar","Life Time Bipolar II", "Life Time Bipolar I"],
                                     phenotype_source_field_numbers=[20501, 20502, 20548, 20492, 20493],
                                     derived_phenotype_sources=[general_depression],
+                                    preprocess_score_columns=f,
                                                make_score_column=life_time_bipolar_scorer,
                                                score_to_boolean=get_min_score_to_boolean(0))
 

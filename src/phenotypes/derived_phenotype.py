@@ -151,9 +151,12 @@ class EverDiagnosedDerivedPhenoType(CodeDerivedPhenotype):
 
 
 
-def replace_missing_values(phenotype: "ScoredBasedDerivedPhenoType", df: DataFrame) -> DataFrame:
+def replace_missing_values(phenotype: "ScoredBasedDerivedPhenoType", df: DataFrame,field_numbers_to_exclude: Optional[list[int]]=None) -> DataFrame:
     # Replace missing values (-818) with 0
+    field_numbers_to_exclude = field_numbers_to_exclude or []
     for field_number in phenotype.phenotype_source_field_numbers:
+        if field_number in field_numbers_to_exclude:
+            continue
         df = df.withColumn(phenotype.p(field_number), when(col(phenotype.p(field_number)) == -818, 0).otherwise(col(phenotype.p(field_number))))
     return df
 
