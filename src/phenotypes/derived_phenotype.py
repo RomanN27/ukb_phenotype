@@ -4,7 +4,7 @@ from pyspark.sql import DataFrame, Column
 from pyspark.sql.functions import col, when
 from typing import ClassVar
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, MISSING
 from typing import List
 from functools import reduce, partial
 
@@ -17,13 +17,13 @@ class DerivedPhenotype:
     name: PhenotypeName
     phenotype_source_field_numbers: List[int] = field(default_factory=list)
     derived_phenotype_sources: List["DerivedPhenotype"] = field(default_factory=list)
-    n_instances: Optional[int] = None
     query_callable: Optional[Callable[["DerivedPhenotype",DataFrame], Tuple[DataFrame,Column]]] = None
+    n_instances: Optional[int] = None
 
+    @staticmethod
+    def pcol(field_number: int|str, instance_number: Optional[int] = None, array_number: Optional[int] = None) -> Column:
 
-    def pcol(self,field_number: int|str, instance_number: Optional[int] = None, array_number: Optional[int] = None) -> Column:
-
-        return col(self.p(field_number, instance_number, array_number))
+        return col(DerivedPhenotype.p(field_number, instance_number, array_number))
 
     @staticmethod
     def p(field_number: int|str, instance_number: Optional[int] = None, array_number: Optional[int] = None) -> str:
@@ -48,17 +48,20 @@ class DerivedPhenotype:
 
     def query_instances(self,df:DataFrame) -> DataFrame:
         old_p = self.p
+        old_p_col = self.pcol
         old_name = self.name
         for i in range(self.n_instances):
-            df  = self.query_instance(df, i, old_name, old_p)
+            df  = self.query_instance(df, i, old_name, old_p,old_p_col)
 
         self.p = old_p
+        self.p_col = old_p_col
         self.name = old_name
         return df
 
-    def query_instance(self, df, i, old_name, old_p):
+    def query_instance(self, df, i, old_name, old_p,old_p_col):
         self.name = f"{old_name}_{i}"
         self.p = partial(old_p, instance_number=i)
+        self.p_col = partial(old_p_col, instance_number=i)
         df, boolean_column = self.query_boolean_column(df)
         df = df.withColumn(self.name, boolean_column)
         return df
@@ -75,6 +78,7 @@ class DerivedPhenotype:
         df, boolean_column = self.query_boolean_column(df)
         df = df.withColumn(self.name, boolean_column)
         return df
+
 
 @dataclass
 class OneBooleanFieldPhenotype(DerivedPhenotype):
@@ -167,28 +171,26 @@ class ScoredBasedDerivedPhenoType(DerivedPhenotype):
     preprocess_score_columns: Callable[["ScoredBasedDerivedPhenoType", DataFrame], DataFrame] = replace_missing_values
     make_score_column: Callable[["ScoredBasedDerivedPhenoType "], Column] = sum_scorer
     score_to_boolean: Callable[["ScoredBasedDerivedPhenoType", Column], Column] = get_min_score_to_boolean(-1)
+    query_callable: Callable[["ScoredBasedDerivedPhenoType", DataFrame], Tuple[DataFrame,Column]] = field(init=False,default=None)
 
 
-    def query_instance(self, df: DataFrame, i: int, old_name: str, old_p: str) -> DataFrame:
+
+    def query_instance(self, df: DataFrame, i: int, old_name: str, old_p: str,old_pcol:str) -> DataFrame:
         old_score_name = self.phenotype.score_name
         old_severity_name = self.phenotype.severity_name
 
         self.phenotype.score_name = f"{old_score_name}_{i}"
         self.phenotype.severity_name = f"{old_severity_name}_{i}"
 
-        df = self.phenotype.query_instance(df, i, old_name, old_p)
+        df = self.phenotype.query_instance(df, i, old_name, old_p,old_pcol)
 
         self.phenotype.score_name = old_score_name
         self.phenotype.severity_name = old_severity_name
 
         return df
 
-    def __call__(self, phenotype: DerivedPhenotype, df: DataFrame) -> Tuple[DataFrame, Column]:
-        self.phenotype = phenotype
-        return self.query_boolean_column(df)
-
-    def query_boolean_column(self, df: DataFrame) -> Tuple[DataFrame, Column]:
-        df = self.preprocess_score_columns(self,df)
+    def score_query(self, df: DataFrame) -> Tuple[DataFrame, Column]:
+        df = self.preprocess_score_columns(self, df)
         df = df.withColumn(self.score_name, self.make_score_column(self))
 
         boundaries = [(float("-inf"), self.score_levels[0])] + \
@@ -202,4 +204,9 @@ class ScoredBasedDerivedPhenoType(DerivedPhenotype):
                                            (col(self.severity_name) < max_val),
                                            label)
 
-        return df, self.score_to_boolean(self,col(self.score_name))
+        return df, self.score_to_boolean(self, col(self.score_name))
+
+    def __call__(self, phenotype: DerivedPhenotype, df: DataFrame) -> Tuple[DataFrame, Column]:
+        self.phenotype = phenotype
+        return self.query_boolean_column(df)
+
