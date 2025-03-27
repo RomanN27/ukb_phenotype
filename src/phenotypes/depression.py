@@ -47,6 +47,7 @@ probable_depression = ScoredBasedDerivedPhenoType(PhenotypeName.PROBABLE_DEPRESS
                                          severity_names=["No Probable Depression","Single Episode Probable Depression",
                                                          "Moderate Recurrent Probable Depression",
                                                          "Severe Recurrent Probable Depression"],
+                                         preprocess_score_columns=lambda phenotype, df: df,
                                          phenotype_source_field_numbers=[4598, 4609, 4620, 2090, 2100, 4631, 5375, 5386],
                                          n_instances=4,
 make_score_column = probable_depression_scorer,
