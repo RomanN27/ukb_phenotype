@@ -181,7 +181,7 @@ class ScoredBasedDerivedPhenoType(DerivedPhenotype):
         self.score_name = f"{old_score_name}_{i}"
         self.severity_name = f"{old_severity_name}_{i}"
 
-        df = self.query_instance(df, i, old_name, old_p,old_pcol)
+        df = super().query_instance(df, i, old_name, old_p,old_pcol)
 
         self.score_name = old_score_name
         self.severity_name = old_severity_name
