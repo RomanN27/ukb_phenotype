@@ -207,8 +207,8 @@ class ScoredBasedDerivedPhenoType(DerivedPhenotype):
         if self.severity_names is not None:
             risk_expr = when(col(self.score_name).isNotNull(), None)  # Default case
             for (min_val, max_val), label in zip(boundaries, self.severity_names):
-                risk_expr = risk_expr.when((col(self.severity_name) >= min_val) &
-                                           (col(self.severity_name) < max_val),
+                risk_expr = risk_expr.when((col(self.score_name) >= min_val) &
+                                           (col(self.score_name) < max_val),
                                            label)
 
         return df, self.score_to_boolean(self, col(self.score_name))
