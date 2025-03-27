@@ -90,5 +90,9 @@ def audit_scorer(phenotype:DerivedPhenotype) -> Column:
 audit_score_alcohol_addiction = ScoredBasedDerivedPhenoType(name = PhenotypeName.AUDIT_SCORE, phenotype_source_field_numbers= [20414, 20403, 20416, 20413, 20407, 20412, 20409, 20408, 20411, 20405], score_levels=[15],
                                                             make_score_column=audit_scorer)
 alcohol_addiction = OneBooleanFieldPhenotype(name = PhenotypeName.ALCOHOL_ADDICTION, source_field_number = 20406)
-alcohol_abuse = AnyDerivedPhenotype(name = PhenotypeName.ALCOHOL_ABUSE, derived_phenotype_sources = [audit_score_alcohol_addiction, alcohol_addiction])
+icd9_alcohol_abuse = ICD9DerivedPhenoType(PhenotypeName.ALCOHOL_ABUSE.icd9(), phenotype_source_codes=["3039"])
+icd10_alcohol_abuse = ICD10DerivedPhenoType(PhenotypeName.ALCOHOL_ABUSE.icd10(), phenotype_source_codes=["F10.1", "F10.2", "F10.3", "F10.4"])
+verbal_interview_alcohol_abuse = VerbalInterviewDerivedPhenoType(PhenotypeName.ALCOHOL_ABUSE.vi(), phenotype_source_codes=[  1408 ])
+alcohol_abuse = AnyDerivedPhenotype(name = PhenotypeName.ALCOHOL_ABUSE, derived_phenotype_sources = [audit_score_alcohol_addiction, alcohol_addiction,
+                                                                                                    icd9_alcohol_abuse, icd10_alcohol_abuse, verbal_interview_alcohol_abuse])
 
