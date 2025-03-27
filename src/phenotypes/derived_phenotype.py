@@ -88,7 +88,9 @@ class DerivedPhenotype:
 @dataclass
 class OneBooleanFieldPhenotype(DerivedPhenotype):
     source_field_number: int = field(default_factory=int)
-    phenotype_source_field_numbers: list[str] = field(default_factory=list, init=False)
+    phenotype_source_field_numbers: list[int] = field(default_factory=list, init=False)
+    def __post_init__(self):
+        self.phenotype_source_field_numbers = [self.source_field_number]
 
     def query_boolean_column(self, df:DataFrame) -> Tuple[DataFrame, Column]:
         return df, self.pcol(self.source_field_number) == 1
