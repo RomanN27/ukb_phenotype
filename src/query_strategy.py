@@ -154,7 +154,7 @@ class PhenotypeQueryManager:
         field_numbers |= PhenotypeQueryManager.get_nested_source_field_numbers(source_phenotypes)
         return field_numbers
     @staticmethod
-    def get_keys_at_each_level(d: Dict[str, Union[Dict, str]], level: int = 0,
+    def get_keys_at_each_level(d:list[DerivedPhenotype], level: int = 0,
                                result: Dict[int, List[str]] = None) -> Dict[int, List[DerivedPhenotype]]:
         if result is None:
             result = {}
@@ -164,12 +164,12 @@ class PhenotypeQueryManager:
             result[level] = []
 
         # Add keys of the current dictionary to the respective level
-        result[level].extend(d.keys())
+        result[level].extend(d)
 
         # Recurse into nested dictionaries
-        for key, value in d.items():
-            if isinstance(value, dict):
-                PhenotypeQueryManager.get_keys_at_each_level(value, level + 1, result)
+        for phenotype in d:
+            if sub_phenotypes:=phenotype.derived_phenotype_sources:
+                PhenotypeQueryManager.get_keys_at_each_level(sub_phenotypes, level + 1, result)
 
         return result
 
