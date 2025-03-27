@@ -1,4 +1,4 @@
-from abc import abstractmethod
+from abc import abstractmethod, ABC
 from typing import Optional, Callable, Tuple
 from pyspark.sql import DataFrame, Column
 from pyspark.sql.functions import col, when
@@ -39,7 +39,6 @@ class DerivedPhenotype:
 
         return field_name
 
-    @abstractmethod
     def query_boolean_column(self, df :DataFrame) -> Tuple[DataFrame, Column]:
         if self.query is None:
             raise NotImplementedError()
@@ -176,20 +175,20 @@ class ScoredBasedDerivedPhenoType(DerivedPhenotype):
 
 
     def query_instance(self, df: DataFrame, i: int, old_name: str, old_p: str,old_pcol:str) -> DataFrame:
-        old_score_name = self.phenotype.score_name
-        old_severity_name = self.phenotype.severity_name
+        old_score_name = self.score_name
+        old_severity_name = self.severity_name
 
-        self.phenotype.score_name = f"{old_score_name}_{i}"
-        self.phenotype.severity_name = f"{old_severity_name}_{i}"
+        self.score_name = f"{old_score_name}_{i}"
+        self.severity_name = f"{old_severity_name}_{i}"
 
-        df = self.phenotype.query_instance(df, i, old_name, old_p,old_pcol)
+        df = self.query_instance(df, i, old_name, old_p,old_pcol)
 
-        self.phenotype.score_name = old_score_name
-        self.phenotype.severity_name = old_severity_name
+        self.score_name = old_score_name
+        self.severity_name = old_severity_name
 
         return df
 
-    def score_query(self, df: DataFrame) -> Tuple[DataFrame, Column]:
+    def query_boolean_column(self, df: DataFrame) -> Tuple[DataFrame, Column]:
         df = self.preprocess_score_columns(self, df)
         df = df.withColumn(self.score_name, self.make_score_column(self))
 
@@ -206,7 +205,4 @@ class ScoredBasedDerivedPhenoType(DerivedPhenotype):
 
         return df, self.score_to_boolean(self, col(self.score_name))
 
-    def __call__(self, phenotype: DerivedPhenotype, df: DataFrame) -> Tuple[DataFrame, Column]:
-        self.phenotype = phenotype
-        return self.query_boolean_column(df)
 
