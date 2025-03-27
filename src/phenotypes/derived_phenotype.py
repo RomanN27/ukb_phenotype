@@ -178,7 +178,9 @@ class ScoredBasedDerivedPhenoType(DerivedPhenotype):
     score_to_boolean: Callable[["ScoredBasedDerivedPhenoType", Column], Column] = get_min_score_to_boolean(-1)
     query_callable: Callable[["ScoredBasedDerivedPhenoType", DataFrame], Tuple[DataFrame,Column]] = field(init=False,default=None)
 
-
+    def __post_init__(self):
+        if self.score_name is None:
+           self.score_name = self.name + "_score"
 
     def query_instance(self, df: DataFrame, i: int, old_name: str, old_p: str,old_pcol:str) -> DataFrame:
         old_score_name = self.score_name
