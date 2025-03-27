@@ -55,7 +55,7 @@ def life_time_bipolar_scorer(phenotype:ScoredBasedDerivedPhenoType):
 life_time_bipolar =ScoredBasedDerivedPhenoType(PhenotypeName.LIFE_TIME_BIPOLAR,
                                     score_levels=[1, 2],
                                     severity_names=["No Life Time Bipolar","Life Time Bipolar II", "Life Time Bipolar I"],
-                                    phenotype_source_field_numbers=[4642, 4653, 6156, 5663, 5674],
+                                    phenotype_source_field_numbers=[20501, 20502, 20548, 20492, 20493],
                                     derived_phenotype_sources=[general_depression],
                                                make_score_column=life_time_bipolar_scorer,
                                                score_to_boolean=get_min_score_to_boolean(0))
