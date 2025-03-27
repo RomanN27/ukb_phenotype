@@ -134,7 +134,7 @@ class PhenotypeQueryManager:
             phenotype_col_names = [p.name for p in phenotypes]
             df = df.withColumn(
                 f'level_{level}_derived_phenotypes',
-                array(*[when(col(c), lit(c)).otherwise(lit(None)).alias(c) for c in phenotype_col_names])
+                array_distinct(array(*[when(col(c), lit(c)).otherwise(lit(None)).alias(c) for c in phenotype_col_names]))
             )
 
         df  = df.drop(*column_names_to_drop)

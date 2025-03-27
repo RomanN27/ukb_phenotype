@@ -164,7 +164,7 @@ def replace_missing_values(phenotype: "ScoredBasedDerivedPhenoType", df: DataFra
 
 def get_min_score_to_boolean(min_index:int)->Callable[["ScoredBasedDerivedPhenoType", Column], Column]:
     def min_score_to_boolean(phenotype: "ScoredBasedDerivedPhenoType", score_column: Column) -> Column:
-        return score_column > phenotype.score_levels[min_index]
+        return score_column >= phenotype.score_levels[min_index]
     return min_score_to_boolean
 
 
