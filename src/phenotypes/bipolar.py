@@ -31,6 +31,7 @@ probable_bipolar = ScoredBasedDerivedPhenoType(PhenotypeName.PROBABLE_BIPOLAR,
                                    severity_names=["No Probable Bipolar","Probable Bipolar II", "Probable Bipolar I"],
                                    phenotype_source_field_numbers=[4642, 4653, 6156, 5663, 5674],
                                    n_instances=4,
+                                      preprocess_score_columns=partial(replace_missing_values, field_numbers_to_exclude=[6156]),
                                                make_score_column=probable_bipolar_scorer)
 
 def life_time_bipolar_scorer(phenotype:ScoredBasedDerivedPhenoType):
