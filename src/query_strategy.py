@@ -128,7 +128,7 @@ class PhenotypeQueryManager:
                 df = phenotype.query(df)
 
 
-        phenotype_levels = self.get_keys_at_each_level(*phenotypes)
+        phenotype_levels = self.get_keys_at_each_level(list(phenotypes))
 
         for level, phenotypes in phenotype_levels.items():
             phenotype_col_names = [p.name for p in phenotypes]
