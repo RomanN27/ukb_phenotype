@@ -131,7 +131,7 @@ class ICD9DerivedPhenoType(CodeDerivedPhenotype):
 class ICD10DerivedPhenoType(CodeDerivedPhenotype):
     phenotype_source_codes: List[str] = field(default_factory=list)
     source_field_number:ClassVar[int] = 41270
-    n_instances: Optional[int] = field(default=None, init=False)
+    n_instances: Optional[int] = field(default=4, init=False)
 
 
 @dataclass
@@ -146,7 +146,7 @@ class VerbalInterviewDerivedPhenoType(CodeDerivedPhenotype):
 class EverDiagnosedDerivedPhenoType(CodeDerivedPhenotype):
     phenotype_source_codes: List[int] = field(default_factory=list)
     source_field_number:ClassVar[int] = 20544
-    n_instances: int = field(default=4, init=False)
+    n_instances: int = field(default=None, init=False)
 
 
 
