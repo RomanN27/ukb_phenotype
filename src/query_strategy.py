@@ -67,7 +67,7 @@ class PhenotypeQueryManager:
         return reduce(lambda df1, df2: df1.join(df2, on="eid", how="outer"), spark_tables) if spark_tables else None
 
     def handle_array_fields(self, spark_table, table_specific_field_names):
-        pattern = r"((^p[0-9]+)_i\d+)_a\d+$"
+        pattern = r"((^p[0-9]+)_i\d+)(_a\d+)?$"
         array_fields = [field for field in table_specific_field_names if re.match(pattern, field)]
 
         final_field_names_to_keep = set(table_specific_field_names)
