@@ -73,6 +73,12 @@ class DerivedPhenotype:
 
         if self.n_instances is not None:
            df = self.query_instances(df)
+           instance_phenotype_names = [f"{self.name}_{i}" for i in range(self.n_instances)]
+
+           boolean_column =     reduce(lambda x, y: x | y,
+                  [col(x) for x in instance_phenotype_names])
+           df = df.withColumn(self.name, boolean_column)
+           return df
 
         df, boolean_column = self.query_boolean_column(df)
         df = df.withColumn(self.name, boolean_column)
