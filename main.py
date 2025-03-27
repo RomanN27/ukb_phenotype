@@ -11,7 +11,7 @@ def main():
     query_manager = PhenotypeQueryManager(spark)
 
     df  =query_manager.query(self_harm, eating_disorder, general_depression,bipolar,anxiety,
-                                 alcohol_abuse, substance_abuse_non_alcoholic, schizophrenia, ptsd, ocd,insomnia,neuroticism)
+                                 alcohol_abuse, substance_abuse_non_alcoholic, schizophrenia, ptsd, ocd)
 
 
     df = df.toPandas()
